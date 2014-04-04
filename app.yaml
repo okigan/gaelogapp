@@ -1,0 +1,31 @@
+application: gaelog
+version: 1
+
+runtime: python27
+api_version: 1
+threadsafe: yes
+
+handlers:
+- url: /stats.*
+  script: google.appengine.ext.appstats.ui.app
+
+# make sure this is high enough in the url match expressions
+- url: /admin/logs
+  script: logs.app
+  login: admin
+
+- url: /.*
+  script: main.app
+  secure: always
+
+# The Python SDK includes a number of builtin handlers 
+# for common application functions.
+builtins:
+# See this page for more info:
+# http://code.google.com/appengine/docs/python/tools/appstats.html
+ - appstats: on
+
+admin_console:
+ pages:
+ - name: Appstats
+   url: /stats
