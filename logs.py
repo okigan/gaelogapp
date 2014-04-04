@@ -1,20 +1,28 @@
 import time
-
-import webapp2
 import json
 
+import webapp2
 from google.appengine.api.logservice import logservice
 
 
 class LogPage(webapp2.RequestHandler):
-
     def get(self):
+        end_date = self.request.get('end_date', None)
         end_time = self.request.get('end_time', None)
+
+        start_date = self.request.get('start_date', None)
+        start_time = self.request.get('start_time', None)
         count = self.request.get('count', None)
         offset = None
 
-        end_time = time.time() if end_time is None else time.mktime(time.strptime(end_time, "%Y%M%d"))
-        count = 1000 if count is None else int(count)
+        end_time = time.time() if end_time is None else float(end_time)
+        count = None if count is None else int(count)
+
+        if end_date:
+            end_time = time.mktime(time.strptime(end_date, "%Y%m%d"))
+
+        if start_date:
+            start_time = time.mktime(time.strptime(start_date, "%Y%m%d"))
 
         class MagicEncoder(json.JSONEncoder):
             def default(self, obj):
@@ -72,16 +80,26 @@ class LogPage(webapp2.RequestHandler):
                 else:
                     return json.JSONEncoder.default(self, obj)
 
+        #wish json could stream, till then this will hog RAM
         log_records = []
-        log_records_gen = logservice.fetch(end_time=end_time, offset=offset,
+        log_records_gen = logservice.fetch(end_time=end_time,
+                                           offset=offset,
                                            minimum_log_level=logservice.LOG_LEVEL_INFO,
                                            include_app_logs=True)
+
+        counter = 0
         for idx, log_record in enumerate(log_records_gen):
+            if start_time and log_record.start_time < start_time:
+                continue
+
             log_records.append(log_record)
 
-            if idx + 1 >= count:
+            if count and counter >= count:
                 break
 
+            counter += 1
+
+        self.response.headers['Content-Type'] = 'application/json'
         self.response.out.write(json.dumps(log_records, indent=True, cls=MagicEncoder))
 
 

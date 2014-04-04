@@ -12,11 +12,12 @@ handlers:
 # make sure this is high enough in the url match expressions
 - url: /admin/logs
   script: logs.app
-  login: admin
+# make sure to use admin (disabled for this demo)
+#  login: admin
 
-- url: /.*
-  script: main.app
-  secure: always
+- url: /
+  static_files: index.html
+  upload: index.html
 
 # The Python SDK includes a number of builtin handlers 
 # for common application functions.
